@@ -458,6 +458,10 @@ void loop()
     ws.textAll("Eliminando huella");
     uint32_t my_id = getIDUsiario(correo);
     Serial.printf("ID usuario: %d\n", my_id);
+    if (my_id == 0) {
+      ws.printfAll("Usuario no encontrado");
+      return;
+    } 
     deleteFingerprint(my_id);
     ws.textAll("Huella eliminada");
     eliminarHuella = false;
@@ -586,7 +590,7 @@ void authFinger()
   }
   // }
   // USE_SERIAL.println("Salido del while");
-
+  Serial.println("589");
   if (!buscar && finger.fingerID > 0)
   {
     showMenssage("Usuario ID: " + String(finger.fingerID));
@@ -621,6 +625,8 @@ void authFinger()
           if (acceso)
           {
             showMenssage("Bienvenido \n" + nombreUsuario);
+            ws.textAll("Bienvenido " + nombreUsuario);
+            delay(1000);
 
             // se abre la puerta
             // digitalWrite(PUERTA, LOW);
@@ -647,7 +653,8 @@ void authFinger()
           }
           else
           {
-            showMenssage(nombreUsuario + " no tiene permitido acceder.");
+            //showMenssage(nombreUsuario + " no tiene permitido acceder.");
+            ws.textAll(nombreUsuario + " asistencia registrada");
             delay(5000);
           }
 
@@ -1123,7 +1130,7 @@ uint8_t registrar_huella(uint32_t id)
 }
 
 uint32_t getIDUsiario(String email) {
-  StaticJsonDocument<500> docCorreo;
+  StaticJsonDocument<1024> docCorreo;
   uint32_t id_usuario = 0;
   String url = baseURL + "/api/usuarios/email/" + email;
   http.begin(wifiClient, url);
@@ -1141,6 +1148,8 @@ uint32_t getIDUsiario(String email) {
 
     id_usuario = docCorreo["id"];
   }
+
+  Serial.print("ID api: "); Serial.println(id_usuario);
 
   return id_usuario;
 }
