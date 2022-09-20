@@ -851,7 +851,34 @@ void readCard()
   }
   Serial.println();
   Serial.print("UID: "); Serial.println(uid_string);
-  abrirPuerta("");
+
+  // /api/usuarios/authentication/rfid/{rfid}
+  String url = baseURL + "/api/usuarios/authentication/rfid/" + String(uid_string);
+  http.begin(wifiClient, url);
+  int httpCode = http.GET();
+  if ( httpCode > 0 && httpCode == 200) {
+    DeserializationError err = deserializeJson(docUsuario, http.getString());
+    if (err) {
+      ws.textAll("Error al resivir los datos");
+      http.end();
+      return;
+    }
+    
+    String nombreUsuario = docUsuario["nombre"];
+    bool acceso = docUsuario["acceso_valido"];
+    if (acceso) {
+      ws.textAll("Autenticación correcta " + nombreUsuario);
+      delay(1000);
+      abrirPuerta("");
+    } else {
+      ws.textAll("Asistencia registrada");
+    }
+
+  } else {
+    ws.textAll("No se pudo autenticar");
+  }
+
+  http.end();
 
   // if (rfid.uid.uidByte[0] != nuidPICC[0] ||
   //     rfid.uid.uidByte[1] != nuidPICC[1] ||
@@ -1175,8 +1202,19 @@ void registrar_tarjeta(uint32_t id) {
       uid_string += rfid.uid.uidByte[i];
     }
     Serial.print("UID: "); Serial.println(uid_string);
-    
-    ws.textAll("Tarjeta registrada " + uid_string + " ID: " + String(id));
+    // /usuarios/rfid/{id_usuario}/{rfid}
+
+    // registar en la api rest
+    String url = baseURL + "/api/usuarios/rfid/" + String(id) + "/" + uid_string;
+    http.begin(wifiClient, url);
+    int httpCode = http.PUT("");
+    Serial.print("[REGISTRAR] http code: "); Serial.println(httpCode);
+    if (httpCode > 0 && httpCode == 200) {
+      ws.textAll("Tarjeta registrada " + uid_string + " ID: " + String(id));
+    } else if (httpCode == 206) {
+      // no es usuario
+      ws.textAll("Error con el usuario");
+    }
     // Halt PICC
     rfid.PICC_HaltA();
 
